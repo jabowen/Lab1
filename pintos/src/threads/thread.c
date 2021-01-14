@@ -46,6 +46,7 @@
 #include "threads/lock.h"
 #include "threads/condvar.h"
 #include "threads/vaddr.h"
+#include "devices/timer.h"
 
 #ifdef USERPROG
 #include "userprog/process.h"
@@ -286,6 +287,7 @@ thread_unblock(struct thread *t)
   list_push_back(&ready_list, &t->elem);
   t->status = THREAD_READY;
   intr_set_level(old_level);
+  //list_remove(&t->elem);
 }
 
 /* Returns the name of the running thread. */
@@ -617,6 +619,19 @@ allocate_tid(void)
   lock_release(&tid_lock);
 
   return tid;
+}
+
+/*checks sleeping threads to see if any need to wake up*/
+void thread_wake(void){
+  struct list_elem *i;
+  for(i=list_begin(&all_list); i!=list_end(&all_list); i=i->next){
+    struct thread *current = list_entry(i, struct thread, allelem);
+    if(current->status == THREAD_BLOCKED&&timer_ticks()>=current->wakeupTime){
+      //printf("wakeup = %d, ticks = %d",current->wakeupTime, timer_ticks());
+      thread_unblock(current);
+      //list_remove(i);
+    }
+  }
 }
 
 /* Offset of `stack' member within `struct thread'.

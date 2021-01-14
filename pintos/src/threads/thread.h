@@ -88,6 +88,7 @@ struct thread {
   uint8_t *stack; /* Saved stack pointer. */
   int priority; /* Priority. */
   struct list_elem allelem; /* List element for all threads list. */
+  int64_t wakeupTime; /*wakeup time*/
 
   /* Shared between thread.c and sempahore.c. */
   struct list_elem elem; /* List element. */
@@ -136,5 +137,6 @@ int thread_get_nice(void);
 void thread_set_nice(int);
 int thread_get_recent_cpu(void);
 int thread_get_load_avg(void);
+void thread_wake(void);
 
 #endif /* threads/thread.h */

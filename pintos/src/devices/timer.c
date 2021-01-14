@@ -94,16 +94,18 @@ timer_elapsed (int64_t then)
 
 /* 
  * Sleeps for approximately TICKS timer ticks.  
- * Interrupts must be turned on. 
  */
 void
 timer_sleep (int64_t ticks) 
 {
   int64_t start = timer_ticks ();
+  int64_t wakeup = start+ticks;
 
-  ASSERT (intr_get_level () == INTR_ON);
-  while (timer_elapsed (start) < ticks) 
-  thread_yield ();
+  thread_current()->wakeupTime = wakeup;
+
+  intr_disable();
+  thread_block();
+  intr_enable();
 }
 
 /* 
@@ -198,6 +200,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
+  thread_wake();
 }
 
 /* 
