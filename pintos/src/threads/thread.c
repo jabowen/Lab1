@@ -65,6 +65,9 @@ static struct list ready_list;
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
 
+/*sleeping list*/
+static struct list sleep_list;
+
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -128,6 +131,7 @@ thread_init(void)
   lock_init(&tid_lock);
   list_init(&ready_list);
   list_init(&all_list);
+  list_init(&sleep_list);
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread();
@@ -286,8 +290,10 @@ thread_unblock(struct thread *t)
   ASSERT(t->status == THREAD_BLOCKED);
   list_push_back(&ready_list, &t->elem);
   t->status = THREAD_READY;
+
+  //printf("\n\n(%d, %d)",list_size(&sleep_list) ,list_size(&ready_list));
+
   intr_set_level(old_level);
-  //list_remove(&t->elem);
 }
 
 /* Returns the name of the running thread. */
@@ -621,17 +627,30 @@ allocate_tid(void)
   return tid;
 }
 
+/*removes from ready, adds to sleeping*/
+void thread_sleep(struct thread *t){
+  enum intr_level old = intr_disable();
+  //list_remove(&t->elem);
+  list_push_back(&sleep_list, &t->elem);
+  thread_block();
+  intr_set_level(old);
+}
+
 /*checks sleeping threads to see if any need to wake up*/
 void thread_wake(void){
+  enum intr_level old = intr_disable();
   struct list_elem *i;
-  for(i=list_begin(&all_list); i!=list_end(&all_list); i=i->next){
-    struct thread *current = list_entry(i, struct thread, allelem);
-    if(current->status == THREAD_BLOCKED&&timer_ticks()>=current->wakeupTime){
-      //printf("wakeup = %d, ticks = %d",current->wakeupTime, timer_ticks());
+  struct thread *current;
+  for(i=list_begin(&sleep_list); i!=list_end(&sleep_list); i=list_next(i)){
+    current = list_entry(i, struct thread, elem);
+    if(timer_ticks()>=current->wakeupTime){
+      struct list_elem *j=list_prev(i);
+      list_remove(i);
+      i=j;
       thread_unblock(current);
-      //list_remove(i);
     }
   }
+  intr_set_level(old);
 }
 
 /* Offset of `stack' member within `struct thread'.

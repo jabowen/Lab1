@@ -97,15 +97,10 @@ timer_elapsed (int64_t then)
  */
 void
 timer_sleep (int64_t ticks) 
-{
-  int64_t start = timer_ticks ();
-  int64_t wakeup = start+ticks;
-
-  thread_current()->wakeupTime = wakeup;
-
-  intr_disable();
-  thread_block();
-  intr_enable();
+{ 
+  //printf("%ld+%ld\n", (long)ticks, (long)timer_ticks()); 
+  thread_current()->wakeupTime = timer_ticks()+ticks;
+  thread_sleep(thread_current());
 }
 
 /* 
